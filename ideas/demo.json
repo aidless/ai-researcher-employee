@@ -1,0 +1,7 @@
+{
+  "Name": "demo-gated-pipeline",
+  "Title": "Demo: gated 4-stage pipeline replay",
+  "Short Hypothesis": "Fake replay should pass all three gates deterministically.",
+  "Experiments": ["run s1-s4 with fake trials, expect all promoted"],
+  "Risk Factors and Limitations": "Fake metrics carry no capability signal."
+}

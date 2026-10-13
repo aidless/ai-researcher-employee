@@ -1,0 +1,10 @@
+stages: [s1_implement, s2_baseline_tune, s3_explore, s4_ablate]
+gates:
+  min_seeds: 2
+  budget_tokens: 200000
+  # 晋升要求：候选相对基线的中位数改进必须超过噪声底
+  noise_floor: 0.005
+worker:
+  timeout_s: 15
+  max_output_chars: 4000
+  seeds_per_stage: 2
