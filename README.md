@@ -1,5 +1,7 @@
 # ai-researcher-employee —— 自己的 AI 研究员工（骨架 v0.1）
 
+[![CI](https://github.com/aidless/ai-researcher-employee/actions/workflows/ci.yml/badge.svg)](https://github.com/aidless/ai-researcher-employee/actions/workflows/ci.yml)
+
 > **披露**：本仓为自主实现的研究管线骨架。设计思想部分参考了
 > SakanaAI/AI-Scientist-v2 的公开设计（课程式 manager/worker 分离、
 > Journal 实验账本、阶段门控晋升——见 `docs/ARCHITECTURE.md` 的思想对照表，
