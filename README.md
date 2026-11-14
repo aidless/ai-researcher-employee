@@ -150,3 +150,27 @@ ai-researcher-employee/
 
 MIT（本仓自写代码）。设计对照见 `docs/ARCHITECTURE.md`；Sakana v2 为
 source-available（RAIL 衍生），本仓与其无代码关系。
+
+## 验收题库与复算
+
+`eval/cases.jsonl` 是 20 条可执行验收题，覆盖十二个口径：数据类型解析
+（`Idea.from_dict` 的大小写键与默认值）、三闸边界（种子数是否计入 `None`、
+中位数差**严格大于**噪声底、预算超 1 即 HOLD）、manager 短路顺序与课程表长度、
+Journal 的 sha 链重放与篡改检出、`run_episode` 的 fake 回放与噪声底抬高后的
+晋升数、worker 的 fake metric 公式与 `METRIC:` 解析、`configs/employee.yaml`
+的门控参数、架构文档口径、以及用 `ast` 现数的测试库存。19 条是 `expr`/`raises`，
+期望值全部由**调用本仓 API 或解析仓内文件**现算，不是抄文档：
+
+```bash
+python3 eval/run_cases.py            # 20/20 cases passed
+python3 eval/run_cases.py --save     # 顺带把结果写进 eval/run-report.json
+python3 eval/run_cases.py --selftest # 篡改一条期望值，必须变红（证明这套题会失败）
+```
+
+**数字如何复算**：`eval/run-report.json` 里每条 case 都带 `id` / `axis` / `detail`，
+把 `detail` 与 `cases.jsonl` 的 `verify` 代码一起看，就能从源码复现该数字；
+`--save` 重跑一次即可重建整份报告，不需要手工抄数。改动 `employee/` 任一实现后
+重跑，期望值对不上立刻暴露（例如 `gate_direction` 把 `>` 改成 `>=`，`GDR-01` 变红）。
+
+**失败归因**：`run_cases.py` 不只报通过率，失败时按 `axis` 汇总（例如
+`models/idea: 1 条 —— MDL-01`），直接指出是哪个模块的哪个口径坏了。

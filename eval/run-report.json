@@ -1,0 +1,129 @@
+{
+ "total": 20,
+ "passed": 20,
+ "failed": 0,
+ "selftest": false,
+ "failed_by_axis": {},
+ "results": [
+  {
+   "id": "MDL-01",
+   "axis": "models/idea",
+   "ok": true,
+   "detail": "n1|t1|h1|2|r1"
+  },
+  {
+   "id": "MDL-02",
+   "axis": "models/idea",
+   "ok": true,
+   "detail": "untitled|1|solo|unknown"
+  },
+  {
+   "id": "GSD-01",
+   "axis": "gates/seeds",
+   "ok": true,
+   "detail": "True|seeds 2>=2"
+  },
+  {
+   "id": "GSD-02",
+   "axis": "gates/seeds",
+   "ok": true,
+   "detail": "False|seeds 1<2 (need 2)"
+  },
+  {
+   "id": "GDR-01",
+   "axis": "gates/direction",
+   "ok": true,
+   "detail": "False|HOLD: delta 0.1250 <= floor 0.125"
+  },
+  {
+   "id": "GDR-02",
+   "axis": "gates/direction",
+   "ok": true,
+   "detail": "HOLD: missing metric (unknown, not failure)"
+  },
+  {
+   "id": "GBD-01",
+   "axis": "gates/budget",
+   "ok": true,
+   "detail": "False|HOLD: tokens 200001>200000"
+  },
+  {
+   "id": "MGR-01",
+   "axis": "manager/promote",
+   "ok": true,
+   "detail": "False|1|seeds 1<2 (need 2)"
+  },
+  {
+   "id": "MGR-02",
+   "axis": "manager/promote",
+   "ok": true,
+   "detail": "True|3|4"
+  },
+  {
+   "id": "JNL-01",
+   "axis": "journal/chain",
+   "ok": true,
+   "detail": "True|3"
+  },
+  {
+   "id": "JNL-02",
+   "axis": "journal/chain",
+   "ok": true,
+   "detail": "False|1"
+  },
+  {
+   "id": "JNL-03",
+   "axis": "journal/chain",
+   "ok": true,
+   "detail": "raised FileNotFoundError"
+  },
+  {
+   "id": "PIP-01",
+   "axis": "pipeline/replay",
+   "ok": true,
+   "detail": "4|True|4"
+  },
+  {
+   "id": "PIP-02",
+   "axis": "pipeline/replay",
+   "ok": true,
+   "detail": "5|4|0.56"
+  },
+  {
+   "id": "PIP-03",
+   "axis": "pipeline/replay",
+   "ok": true,
+   "detail": "1|s1_implement|HOLD: delta 0.0200 <= floor 5.0"
+  },
+  {
+   "id": "WKR-01",
+   "axis": "worker/fake",
+   "ok": true,
+   "detail": "0.563|fake"
+  },
+  {
+   "id": "WKR-02",
+   "axis": "worker/parse",
+   "ok": true,
+   "detail": "0.42|None"
+  },
+  {
+   "id": "CFG-01",
+   "axis": "config/params",
+   "ok": true,
+   "detail": "2|0.005|200000|2|100000"
+  },
+  {
+   "id": "DOC-01",
+   "axis": "docs/architecture",
+   "ok": true,
+   "detail": "gates.py 三闸（种子数/方向/预算）"
+  },
+  {
+   "id": "TST-01",
+   "axis": "tests/inventory",
+   "ok": true,
+   "detail": "8|test_gates.py:4,test_journal.py:2,test_pipeline.py:2"
+  }
+ ]
+}
