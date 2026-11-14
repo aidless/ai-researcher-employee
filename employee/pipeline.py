@@ -1,7 +1,6 @@
 """Offline pipeline: idea -> 4 stages -> journal. Fake by default."""
 from __future__ import annotations
 
-import json
 
 from . import journal as J
 from . import manager, worker
