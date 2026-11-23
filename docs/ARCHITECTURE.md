@@ -1,17 +1,14 @@
-"""Design notes: what we learned from reversing others (ideas only, no copied code)."""
+# 设计备忘
 
-# AI-Scientist-v2（Sakana，source-available/RAIL衍生）思想对照
-#
-# | v2 设计              | 本仓对应实现                  | 差异                       |
-# |----------------------|-------------------------------|----------------------------|
-# | AgentManager 定4主阶段课程 | manager.STAGES + 阶段目标表 | v2 由 LLM 生成子阶段目标，本仓 v0.1 用固定课程表（确定性优先） |
-# | Journal{plan/code/结果/metric} | journal.py append-only账本 | v2 节点含代码+VLM反馈；本仓只记 metric+摘要+sha链（轻量） |
-# | 最优节点隔离复用防污染 | worker 每次在独立 workdir 跑 | 同思想，简化实现 |
-# | 多种子+图聚合后才晋升 | gates.py 三闸（种子数/方向/预算） | v2 用 LLM 选优；本仓用中位数>噪声底（可复算） |
-# | 引文→成稿→反射解耦 | writeup.py（模板渲染，v0.1占位） | 引文检索后续接 rag-qa，不直调外部 API |
-# | 文本+视觉双通道评审 | review.py 清单制（v0.1占位） | VLM 通道记为 unknown，暂不实现 |
-# | token追踪+断点续跑 | Journal 即断点（重放 verify） | token 计数后续接 |
-#
-# 许可边界：本文件只记录思想。Sakana v2 的代码、提示词、模板一律不入仓；
-# REA 取证证据见 /tmp/opencode/rea-aiscientist-v2.json（evidence ev_40a2b54e…，
-# root ea62dd14…，0矛盾，10节点——Python仓，JS分析器覆盖有限，如实记录）。
+本文件不是实验结果，也不是对 SakanaAI/AI-Scientist-v2 的审计。下面关于对方设计的格子没有仓内证据，不能当作本仓结论引用。本仓可复算的计数只在 README 的检查块里。
+
+Sakana 的代码、提示词、模板都没有进入本仓库。以前写过的仓外取证路径和「零矛盾 / 若干节点」不再保留：那些材料不在 git 里，无法由 `make check` 重放。
+
+| 对照笔记里的设计 | 本仓里实际有的东西 | 不要读成的意思 |
+|---|---|---|
+| 由 manager 安排多阶段课程 | `models.STAGES`，`manager.curriculum()` 原样返回 | 本仓课程表是固定的，不由模型临时生成 |
+| 实验账本 | `journal.py` 的 append-only jsonl 与哈希链 | 只记录本仓写入的字段，不是对方的节点格式 |
+| 每次试验隔离 | `worker.py` 在回放模式下不跑外部代码；非回放分支用临时目录 | 非回放分支不是沙箱，命令行也到不了它 |
+| 多种子聚合后再晋升 | gates.py 三闸（种子数/方向/预算） | 方向闸是中位数差与噪声底，不是统计检验 |
+| 成稿与评审分开 | 不在本仓库（没有 `writeup.py`，也没有 `review.py`） | 以前写成占位实现是错的 |
+| 断点可以重放 | `journal.verify` 重放当前文件里的链 | 重放通过不等于文件没有被截断或整份替换 |

@@ -1,8 +1,14 @@
-# --- acceptance_backfill (EVAL_ACCEPTANCE_STANDARD.md P4) ---
-# 证据来源: ci.yml
-# 命令逐字取自该来源，未增删任何参数。
-# 归一: python → python3（本机无 python 别名，实测 Error 127）
-.PHONY: eval
+.PHONY: check eval test
 
+# Stdlib only: recompute the README check block. No network, no API key,
+# no third-party install.
+check:
+	python3 eval/check_claims.py
+
+# Acceptance cases alone. `make check` runs these too.
 eval:
+	python3 eval/run_cases.py
+
+# Optional. Requires pytest, which `make check` does not import.
+test:
 	python3 -m pytest tests/ -q

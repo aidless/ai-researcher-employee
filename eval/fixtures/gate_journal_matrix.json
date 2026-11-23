@@ -1,0 +1,196 @@
+{
+  "protocol": "Labels in this file are the spec. eval/check_claims.py must recompute verdicts and must not rewrite this file.",
+  "gates": [
+    {
+      "id": "seeds-below",
+      "gate": "seeds",
+      "min_seeds": 2,
+      "metrics": [1.0],
+      "expect": "HOLD",
+      "message": "seeds 1<2 (need 2)"
+    },
+    {
+      "id": "seeds-exact-with-zero",
+      "gate": "seeds",
+      "min_seeds": 2,
+      "metrics": [1.0, 0.0],
+      "expect": "PASS",
+      "message": "seeds 2>=2"
+    },
+    {
+      "id": "seeds-ignore-none",
+      "gate": "seeds",
+      "min_seeds": 2,
+      "metrics": [null, 1.0, null],
+      "expect": "HOLD",
+      "message": "seeds 1<2 (need 2)"
+    },
+    {
+      "id": "direction-inside-floor",
+      "gate": "direction",
+      "noise_floor": 0.005,
+      "cand": [0.501, 0.501],
+      "base": [0.5, 0.5],
+      "expect": "HOLD",
+      "message": "HOLD: delta 0.0010 <= floor 0.005"
+    },
+    {
+      "id": "direction-above-floor",
+      "gate": "direction",
+      "noise_floor": 0.005,
+      "cand": [0.6, 0.6],
+      "base": [0.5, 0.5],
+      "expect": "PASS",
+      "message": "delta 0.1000 > floor 0.005"
+    },
+    {
+      "id": "direction-equal-to-floor",
+      "gate": "direction",
+      "noise_floor": 0.125,
+      "cand": [0.625],
+      "base": [0.5],
+      "expect": "HOLD",
+      "message": "HOLD: delta 0.1250 <= floor 0.125"
+    },
+    {
+      "id": "direction-missing-candidate",
+      "gate": "direction",
+      "noise_floor": 0.005,
+      "cand": [null],
+      "base": [0.5],
+      "expect": "HOLD",
+      "message": "HOLD: missing metric (unknown, not failure)"
+    },
+    {
+      "id": "direction-missing-baseline",
+      "gate": "direction",
+      "noise_floor": 0.005,
+      "cand": [0.6],
+      "base": [null],
+      "expect": "HOLD",
+      "message": "HOLD: missing metric (unknown, not failure)"
+    },
+    {
+      "id": "direction-negative-delta",
+      "gate": "direction",
+      "noise_floor": 0.005,
+      "cand": [0.4, 0.4],
+      "base": [0.5, 0.5],
+      "expect": "HOLD",
+      "message": "HOLD: delta -0.1000 <= floor 0.005"
+    },
+    {
+      "id": "direction-median-of-three",
+      "gate": "direction",
+      "noise_floor": 0.005,
+      "cand": [0.51, 0.9, 0.52],
+      "base": [0.5, 0.5, 0.5],
+      "expect": "PASS",
+      "message": "delta 0.0200 > floor 0.005"
+    },
+    {
+      "id": "budget-under",
+      "gate": "budget",
+      "tokens_used": 10,
+      "budget_tokens": 100,
+      "expect": "PASS",
+      "message": "tokens 10<=100"
+    },
+    {
+      "id": "budget-exact",
+      "gate": "budget",
+      "tokens_used": 100,
+      "budget_tokens": 100,
+      "expect": "PASS",
+      "message": "tokens 100<=100"
+    },
+    {
+      "id": "budget-over-by-one",
+      "gate": "budget",
+      "tokens_used": 200001,
+      "budget_tokens": 200000,
+      "expect": "HOLD",
+      "message": "HOLD: tokens 200001>200000"
+    }
+  ],
+  "clean_chains": [
+    {
+      "id": "empty",
+      "entries": []
+    },
+    {
+      "id": "one",
+      "entries": [
+        {"kind": "idea", "payload": {"name": "only"}}
+      ]
+    },
+    {
+      "id": "three",
+      "entries": [
+        {"kind": "idea", "payload": {"name": "x"}},
+        {"kind": "stage", "payload": {"stage": "s1", "promoted": true}},
+        {"kind": "stage", "payload": {"stage": "s2", "promoted": false}}
+      ]
+    },
+    {
+      "id": "nested",
+      "entries": [
+        {"kind": "idea", "payload": {"name": "n", "tags": ["a", "b"]}},
+        {"kind": "stage", "payload": {"metrics": [0.5, null], "promoted": true}}
+      ]
+    }
+  ],
+  "tamper_base": [
+    {"kind": "idea", "payload": {"name": "base"}},
+    {"kind": "stage", "payload": {"stage": "s1", "promoted": true}},
+    {"kind": "stage", "payload": {"stage": "s2", "promoted": true}}
+  ],
+  "tampers": [
+    {
+      "id": "rewrite-prev",
+      "op": "set-prev",
+      "index": 0,
+      "value": "NOTGENESIS",
+      "expect": "caught"
+    },
+    {
+      "id": "rewrite-hash",
+      "op": "set-hash",
+      "index": 0,
+      "value": "0000000000000000000000000000000000000000000000000000000000000000",
+      "expect": "caught"
+    },
+    {
+      "id": "mutate-payload",
+      "op": "mutate-payload",
+      "index": 1,
+      "key": "stage",
+      "value": "s9",
+      "expect": "caught"
+    },
+    {
+      "id": "append-forged",
+      "op": "append-raw",
+      "raw": "{\"kind\":\"stage\",\"payload\":{},\"prev\":\"WRONG\",\"hash\":\"00\"}\n",
+      "expect": "caught"
+    },
+    {
+      "id": "swap-first-two",
+      "op": "swap",
+      "i": 0,
+      "j": 1,
+      "expect": "caught"
+    },
+    {
+      "id": "drop-tail",
+      "op": "drop-last",
+      "expect": "missed"
+    },
+    {
+      "id": "reorder-keys",
+      "op": "reorder-keys",
+      "index": 0,
+      "expect": "missed"
+    }
+  ]
+}

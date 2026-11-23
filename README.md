@@ -1,176 +1,78 @@
-# ai-researcher-employee —— 自己的 AI 研究员工（骨架 v0.1）
+# ai-researcher-employee
+
+研究管线的阶段晋升如果只靠人或模型的一句话，事后就无法复算。
+本仓库把课程表固定下来；第一阶段直接记为晋升，其后的晋升只经过种子数、方向相对噪声底、预算三道纯函数，每次决定追加进一条哈希链账本。
+它回答机制能否被离线重放，不回答任何研究课题是否成立。
+
+**结果与限度。** 标签事先写在 `eval/fixtures/gate_journal_matrix.json`，`make check` 再调用 `employee.gates` 和 `employee.journal.verify` 重算。闸夹具里返回真（`gate_pass`）与返回假（`gate_hold`）的条数、干净链通过条数（`clean_chains_verified`）、注入改动被抓住（`tamper_caught`）与被放过（`tamper_missed`）的条数，都在下面的检查块里。README 里每一个独立出现的数字都必须等于这次重算，否则检查失败。限度：方向闸比较的是中位数之差和噪声底，相等算 HOLD，这不是显著性检验；删掉账本尾部，或只重排一行 JSON 的键，校验仍然通过；`--fake` 的指标是回放公式，不进入本结果；命令行无法关掉回放；没有真实模型实验；`writeup.py` 与 `review.py` 不在本仓库里。失败模式见 `FAILURE_MODES.md`。
+
+<!-- CHECK:BEGIN -->
+package_version: 0.1.0
+requires_python_at_least: 3.10
+license: MIT
+runtime_requirements: pytest,pyyaml
+stages: 4
+gate_functions: 3
+gate_fixtures: 13
+gate_pass: 5
+gate_hold: 8
+clean_chains_verified: 4
+tamper_cases: 7
+tamper_caught: 5
+tamper_missed: 2
+offline_tests_passed: 8
+acceptance_cases_passed: 20
+acceptance_cases_total: 20
+acceptance_cases_failed: 0
+<!-- CHECK:END -->
 
 [![CI](https://github.com/aidless/ai-researcher-employee/actions/workflows/ci.yml/badge.svg)](https://github.com/aidless/ai-researcher-employee/actions/workflows/ci.yml)
 
-> 🗂 **仓库族谱**：「自主研究循环」主线仓是 [ai-researcher](https://github.com/aidless/ai-researcher)（证据链签字版）；本仓定位是骨架 v0.1 的 manager/worker 分离参考实现。
-
-> **披露**：本仓为自主实现的研究管线骨架。设计思想部分参考了
-> SakanaAI/AI-Scientist-v2 的公开设计（课程式 manager/worker 分离、
-> Journal 实验账本、阶段门控晋升——见 `docs/ARCHITECTURE.md` 的思想对照表，
-> **未复制其任何代码/提示/模板**，详见许可说明）。
-> 任何由本系统生成的论文手稿必须在摘要或方法节显著声明机器生成。
-
-## 管线（4 主阶段，manager 定课程，worker 只执行）
-
-```
-idea.json → S1 初实现 → S2 基线调参（禁改结构） → S3 创新探索 → S4 消融
-                │            │                       │              │
-                └──── Journal（append-only账本，sha链）─────────────┘
-                              │ 门控晋升（种子数/方向/预算三闸）
-                              ▼
-                    writeup（模板渲染） → review（清单制）
-```
-
-## 诚实性约束（从 arx 继承）
-
-- `--fake` 是管道回放：直接提交预设 metric，仅验证接线，结果行带
-  `llm: fake`，不允许出现在能力声明里。
-- 阶段晋升必须过三闸：`min_seeds` / 指标方向与噪声底比较 / token预算。
-  任一不过即 `HOLD`，记入 Journal，不静默丢弃。
-- Journal 是 append-only jsonl + sha 链，`verify` 命令可离线重放校验。
-- 不知道的记 `unknown`，不猜。
-
-## 本仓证明了什么 / 不证明什么
-
-**证明了什么（可复算的工程事实）：**
-
-- 4 主阶段管线（s1_implement → s2_baseline_tune → s3_explore → s4_ablate）能
-  用纯离线逻辑跑通：manager 定课程表，worker 每 seed 在独立 workdir 执行，
-  Journal 逐阶段 append 并构成 sha 链（`employee/journal.py`）。
-- 阶段晋升门控是**纯函数**且可离线重算：`gate_seeds`（有效种子数≥min_seeds）、
-  `gate_direction`（中位数差 > noise_floor，缺失记 unknown 不算失败）、
-  `gate_budget`（token 用 ≤ 预算）。`tests/test_gates.py` 对每条都做了
-  RED→GREEN（在噪声底内 → HOLD；超出 → 通过）。
-- Journal 的 append-only 与篡改检测：`journal.verify` 重放整个链，任何一条
-  `prev`/`hash` 被改动即返回 `(False, n)`；`tests/test_journal.py` 实测注入
-  篡改行后被检出。
-- `--fake` 管道回放：`run_episode(..., fake=True)` 逐阶段提交预设 metric，
-  结果行带 `llm: fake`，能验证接线而无需任何 API key/网络。
-  `tests/test_pipeline.py` 验证全 4 阶段晋升、噪声底抬高后 s2 起 HOLD。
-
-**不证明什么（边界，fail-closed）：**
-
-- `--fake` 跑出的任何 metric **不是实验结论**：它是回放值，`llm: fake`
-  标记即证据，禁止进入能力声明或论文正文。
-- 管线骨架是 v0.1：writeup（`writeup.py`）与 review（`review.py`）目前是
-  占位实现，VLM 视觉通道记为 `unknown`，**未实现**。本仓不声称能产出
-  完整论文——它验证的是「manager/worker 分离 + 门控 + 账本」的骨架。
-- 三闸是**确定性**判据（中位数 vs 噪声底），不是统计显著性检验；没有
-  对 seed 分布做方差分析，也没有校准噪声底取值。噪声底是配置参数
-  （`configs/employee.yaml`），其合理性未被外部基准验证。
-- 与 SakanaAI/AI-Scientist-v2 **无代码关系**：本仓只借鉴其公开设计思想
-  （见 `docs/ARCHITECTURE.md` 对照表），代码、提示词、模板一律未复制。
-  这是"思想对照 + 自写实现"，不是衍生作品。
-- 尚未接入真实 LLM/文献检索/评审模型：`rag-qa`（RRF 融合）、
-  `paper-writing-agent`（49 校验门）、`just-agent`（记忆层）在 README 中
-  是**规划**而非已合并依赖。当前 `requirements.txt` 只有 pytest + pyyaml。
-
-## 快速开始
+## 怎么复算
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m pytest tests/ -q        # 8 项，全部离线、无 API key
-.venv/bin/python run_employee.py --fake --idea ideas/demo.json
-.venv/bin/python run_employee.py --verify logs/demo.jsonl
+make check
 ```
 
-测试套件离线可跑：`tests/test_gates.py`、`tests/test_journal.py`、
-`tests/test_pipeline.py` 共 8 项，全部不需要网络或模型调用。
+使用系统自带、且满足检查块里 `requires_python_at_least` 的 Python。不需要 API key，不访问网络，不安装第三方包。`make check` 会重跑 `tests/` 里的离线测试、`eval/cases.jsonl` 里的验收题，并对照 `eval/run-report.json` 里已经提交的 `detail`。验收题的自检会故意改坏一条期望值，改坏后必须变红。
 
-## 目录结构
+`requirements.txt` 里的 pytest 和 PyYAML 不参与上面的计数。PyYAML 只被 `employee/pipeline.py` 的 `load_cfg` 使用。已经装了 pytest 时，可以用 `make test` 再跑一遍同一批测试函数。
 
-```
-ai-researcher-employee/
-├── employee/
-│   ├── models.py      # 纯数据类型：Idea / TrialResult / STAGES（无 I/O）
-│   ├── gates.py       # 三闸纯函数：seeds / direction-vs-noise / budget
-│   ├── journal.py     # append-only jsonl + sha256 链，verify 可离线重放
-│   ├── manager.py     # 课程表（4 主阶段）+ should_promote 编排
-│   ├── worker.py      # 每 seed 独立 workdir 执行
-│   ├── pipeline.py    # run_episode：idea → 4 阶段 → Journal（默认 fake）
-│   └── __init__.py
-├── configs/employee.yaml   # 门控参数（min_seeds / noise_floor / budget）
-├── ideas/demo.json         # 示例 idea（--fake 回放输入）
-├── tests/                  # 8 项离线测试（gates / journal / pipeline）
-├── docs/ARCHITECTURE.md    # 与 AI-Scientist-v2 的思想对照表（无代码复制）
-├── run_employee.py         # CLI 入口（--fake / --verify / --config）
-└── pyproject.toml          # pytest testpaths = tests
-```
+## 机制（可在仓内对上号）
 
-## Results
+课程表是 `employee/models.py` 的 `STAGES`：`s1_implement`、`s2_baseline_tune`、`s3_explore`、`s4_ablate`。`employee/manager.py` 的 `curriculum()` 原样返回这份列表。三道闸是 `employee/gates.py` 的 `gate_seeds`、`gate_direction`、`gate_budget`。`employee/journal.py` 把记录追加进 jsonl，并用前一条哈希串起下一条。
 
-### P1 真实 LLM 实跑结果：not yet measured
+`gate_hold` 表示闸函数返回假。种子闸失败时的文案不含 HOLD 这个词；方向闸和预算闸的失败文案含有它。夹具把这两种情况都标成 HOLD。
 
-本仓 **尚未做过任何一次真实 LLM（P1 级）实跑**，因此没有真实结果数字可报。
-原因（如实）：
+## 不在本结果里的东西
 
-1. 仓库内不存在任何真实运行的日志/结果文件——`logs/` 只在 `--fake` 回放时生成
-   （默认 `logs/demo.jsonl`，不入库），仓库中也未提交任何 `.jsonl`；
-2. 真实跑需要接通 worker 的 LLM 调用与 API 预算（4 阶段 × 多种子 × token 闸），
-   该接线在骨架 v0.1 中未完成（见 `docs/ARCHITECTURE.md` 的未接入清单）；
-3. 按本仓诚实性约束，`--fake` 回放的指标**不构成能力声明**，不允许被当作结果引用。
+- `--fake` 以及命令行的默认路径是管道回放。`run_employee.py` 传入的是 `fake=a.fake or True`。回放行上的 `llm` 字段为 `fake`。那些 metric 不是能力，也不是论文材料。
+- 没有接入真实 LLM、文献检索或评审模型。
+- 下列名字不是本仓库的依赖，也没有被合并进来：arx、just-agent、paper-writing-agent、rag-qa、agent-databench。本仓库不引用它们的内部数字。
+- `docs/ARCHITECTURE.md` 是设计备忘，不是对 SakanaAI 那个 AI Scientist 仓库的实测，也不是本仓结果。本仓代码、提示词和模板都是自写的，许可是检查块里的 `license`（全文在 `LICENSE`）。
 
-### 已实测的管线级数字（`llm: fake`，仅验证接线，2026-11-10 实跑）
+## 目录
 
-| 检查 | 结果（真实输出） |
+| 路径 | 作用 |
 |---|---|
-| 单元测试 | `8 passed in 0.11s`（tests/test_gates.py + test_journal.py + test_pipeline.py） |
-| `--fake` 回放 | demo idea 四阶段全部 `promoted: true`；三闸判据逐条通过（`seeds 2>=2`、`delta 0.0200 > floor 0.005`、`tokens 0<=200000`） |
-| Journal 校验 | `{"verify_ok": true, "entries": 5}`（append-only jsonl + sha 链，离线重放通过） |
-| Journal 指标值 | s1: 0.5→0.501；s2: 0.52→0.521；s3: 0.54→0.541；s4: 0.56→0.561（全部 `llm: fake`） |
+| `employee/gates.py` | 三道晋升闸，纯函数 |
+| `employee/journal.py` | append-only jsonl 与哈希链，`verify` 可离线重放 |
+| `employee/manager.py` | 固定课程表与 `should_promote` |
+| `employee/pipeline.py` | `run_episode`：想法走完课程表并写入 Journal |
+| `employee/worker.py` | 单次 trial；回放模式只证明接线 |
+| `eval/fixtures/gate_journal_matrix.json` | 冻结标签（先于检查器写定） |
+| `eval/check_claims.py` | `make check` 的重算入口 |
+| `eval/cases.jsonl` | 验收题，期望值由现算对上 |
+| `tests/` | 离线测试：`test_gates.py`、`test_journal.py`、`test_pipeline.py` |
+| `configs/employee.yaml` | 闸参数与 worker 参数 |
+| `FAILURE_MODES.md` | 当前代码已经表现出的失败方式 |
 
-## What this doesn't claim / Limits
+## GitHub About
 
-- 不声明任何真实研究能力：所有已跑数字均来自 `--fake` 管道回放（journal 行带 `llm: fake`）。
-- worker 的文献检索、外部工具调用尚未接入（见「与现有资产的关系」表中「后续接入」项）。
-- writeup 阶段的 49 校验门属于 [paper-writing-agent](https://github.com/aidless/paper-writing-agent)，本仓未接入。
-- P1 真实实验数字 not yet measured（原因见 Results 节）；接入后所有晋升仍须过三闸并落 Journal。
+About 存在仓库设置里，不在 git 中。与本 README 对齐、供维护者贴上的句子是：
 
-## 目录导览
-
-| 路径 | 内容 |
-|---|---|
-| `run_employee.py` | CLI：`--fake` 回放 / `--verify` journal 离线校验 |
-| `employee/` | manager/worker 分离实现（pipeline、journal、gates、models） |
-| `configs/employee.yaml` | 阶段门控参数（min_seeds / 噪声底 / token 预算） |
-| `ideas/demo.json` | 示例 idea（fake 回放用） |
-| `tests/` | 8 个单元测试（门控、journal sha 链、管线） |
-| `docs/ARCHITECTURE.md` | 架构说明 + 与 SakanaAI/AI-Scientist-v2 的思想对照表（未复制代码） |
-## 与现有资产的关系（只连不抄）
-
-| 资产 | 复用点 |
-|---|---|
-| arx（autonomous-researcher） | 门控思想（noise floor / MDE）、Merkle账本格式 |
-| just-agent | 记忆检索层（后续把 worker 的文献/context 接到它） |
-| paper-writing-agent | writeup 阶段的 49 校验门（后续接入） |
-| rag-qa | 文献检索 RRF 融合（后续替换 semantic_scholar 直调） |
-| agent-databench | `--fake` 回放评测纪律 |
+> 离线可复算的研究管线骨架：固定课程、纯函数晋升闸与 append-only 实验账本（Journal）。计数由 make check 重算；没有真实模型实验。
 
 ## 许可
 
-MIT（本仓自写代码）。设计对照见 `docs/ARCHITECTURE.md`；Sakana v2 为
-source-available（RAIL 衍生），本仓与其无代码关系。
-
-## 验收题库与复算
-
-`eval/cases.jsonl` 是 20 条可执行验收题，覆盖十二个口径：数据类型解析
-（`Idea.from_dict` 的大小写键与默认值）、三闸边界（种子数是否计入 `None`、
-中位数差**严格大于**噪声底、预算超 1 即 HOLD）、manager 短路顺序与课程表长度、
-Journal 的 sha 链重放与篡改检出、`run_episode` 的 fake 回放与噪声底抬高后的
-晋升数、worker 的 fake metric 公式与 `METRIC:` 解析、`configs/employee.yaml`
-的门控参数、架构文档口径、以及用 `ast` 现数的测试库存。19 条是 `expr`/`raises`，
-期望值全部由**调用本仓 API 或解析仓内文件**现算，不是抄文档：
-
-```bash
-python3 eval/run_cases.py            # 20/20 cases passed
-python3 eval/run_cases.py --save     # 顺带把结果写进 eval/run-report.json
-python3 eval/run_cases.py --selftest # 篡改一条期望值，必须变红（证明这套题会失败）
-```
-
-**数字如何复算**：`eval/run-report.json` 里每条 case 都带 `id` / `axis` / `detail`，
-把 `detail` 与 `cases.jsonl` 的 `verify` 代码一起看，就能从源码复现该数字；
-`--save` 重跑一次即可重建整份报告，不需要手工抄数。改动 `employee/` 任一实现后
-重跑，期望值对不上立刻暴露（例如 `gate_direction` 把 `>` 改成 `>=`，`GDR-01` 变红）。
-
-**失败归因**：`run_cases.py` 不只报通过率，失败时按 `axis` 汇总（例如
-`models/idea: 1 条 —— MDL-01`），直接指出是哪个模块的哪个口径坏了。
+MIT。版权声明见 `LICENSE`。
